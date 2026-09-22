@@ -1,0 +1,103 @@
+import json
+from pathlib import Path
+
+from neuroglancer.viewer_state import ViewerState
+
+from ngsnap import Style, StyleError
+from ngsnap.template import TemplatedState
+
+STATE_DICT = {
+    "layers": [
+        {"type": "image", "source": "precomputed://gs://example/img", "name": "img"},
+        {
+            "type": "segmentation",
+            "source": "precomputed://gs://example/seg",
+            "name": "seg",
+            "visible": False,
+        },
+    ],
+    "layout": "xy",
+}
+
+DEFAULT_TOML = Path(__file__).parent.parent / "src/ngsnap/styles/default.toml"
+
+
+def test_default_hides_ui_and_sets_size_background_scalebar() -> None:
+    result = Style.default().apply(STATE_DICT)
+    config = result.config
+    assert config["showUIControls"] is False
+    assert config["showPanelBorders"] is False
+    assert config["viewerSize"] == [1600, 1200]
+    assert config["scaleBarOptions"]["scaleFactor"] == 1
+    viewer = result.viewer_state.to_json()
+    assert viewer["showScaleBar"] is True
+    assert viewer["crossSectionBackgroundColor"] == "#000000"
+    assert viewer["projectionBackgroundColor"] == "#000000"
+
+
+def test_apply_returns_templated_state() -> None:
+    result = Style.default().apply(STATE_DICT)
+    assert isinstance(result, TemplatedState)
+    assert isinstance(result.viewer_state, ViewerState)
+    assert result.config != {}
+
+
+def test_apply_does_not_mutate_input() -> None:
+    state = ViewerState(STATE_DICT)
+    before = state.to_json()
+    Style.default().apply(state)
+    assert state.to_json() == before
+
+
+def test_respected_layer_visibility_survives() -> None:
+    style = Style.default()
+    assert "layers[].visible" in style.respects
+    result = style.apply(STATE_DICT)
+    layers = {layer["name"]: layer for layer in result.viewer_state.to_json()["layers"]}
+    assert layers["seg"]["visible"] is False
+
+
+def test_overrides_are_declared() -> None:
+    overrides = Style.default().overrides
+    assert "showScaleBar" in overrides
+    assert "viewerSize" in overrides
+
+
+def test_render_time_setting_changes_canonical_serialization() -> None:
+    base = Style.default()
+    bigger = Style(
+        template=base.template,
+        config={**base.config, "viewerSize": [3200, 2400]},
+        respects=base.respects,
+    )
+    assert base.to_json() != bigger.to_json()
+
+
+def test_from_file_matches_default() -> None:
+    loaded = Style.from_file(DEFAULT_TOML)
+    assert loaded.to_json() == Style.default().to_json()
+
+
+def test_from_file_missing_raises_style_error() -> None:
+    try:
+        Style.from_file("does/not/exist.toml")
+    except StyleError:
+        return
+    raise AssertionError("expected StyleError")
+
+
+def test_from_file_rejects_non_table_template(tmp_path: Path) -> None:
+    bad = tmp_path / "bad.toml"
+    bad.write_text('template = "not a table"\n', encoding="utf-8")
+    try:
+        Style.from_file(bad)
+    except StyleError:
+        return
+    raise AssertionError("expected StyleError")
+
+
+def test_to_json_is_deterministic() -> None:
+    first = Style.default().to_json()
+    second = Style.default().to_json()
+    assert first == second
+    assert json.loads(first)["config"]["viewerSize"] == [1600, 1200]

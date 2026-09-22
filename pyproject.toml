@@ -11,6 +11,10 @@ dependencies = [
     "neuroglancer>=2.41.2",
 ]
 
+[project.optional-dependencies]
+# Headless render engine; base install stays browser-free so templating (P15) needs no browser.
+render = ["selenium>=4.20"]
+
 [build-system]
 requires = ["uv_build>=0.11.3,<0.12.0"]
 build-backend = "uv_build"
@@ -41,6 +45,12 @@ ignore = ["PLC0415", "PLR0913", "PLR0917", "PLR2004", "PLW2901", "TRY003", "BLE0
 
 [tool.ruff.format]
 exclude = ["*.md"]
+
+[tool.pytest.ini_options]
+addopts = "-m 'not browser'"
+markers = [
+    "browser: integration tests that launch a real headless browser (needs the 'render' extra)",
+]
 
 [[tool.mypy.overrides]]
 module = ["neuroglancer.*"]

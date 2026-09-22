@@ -4,12 +4,11 @@ title: 'CLI: ngsnap render, key, template, and batch commands (P9)'
 status: To Do
 assignee: []
 created_date: '2026-09-22 19:33'
+updated_date: '2026-09-22 22:27'
 labels: []
 milestone: m-2
 dependencies:
-  - TASK-8
-  - TASK-6
-  - TASK-4
+  - TASK-13
 references:
   - design.md
 priority: medium
