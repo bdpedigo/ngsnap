@@ -24,8 +24,8 @@ spike-deps:
 
 # Render the representative state headlessly: driver = chrome | firefox-xvfb | playwright
 spike-render driver="chrome":
-    cd spike && uv run python render_spike.py --driver {{driver}}
+    cd spike && uv run --group spike python render_spike.py --driver {{driver}}
 
 # Render a 4panel variant so 2D cross-sections and the 3D mesh are both visible
 spike-render-4panel driver="chrome":
-    cd spike && uv run python render_spike.py --driver {{driver}} --layout 4panel --out-dir out-4panel
+    cd spike && uv run --group spike python render_spike.py --driver {{driver}} --layout 4panel --out-dir out-4panel

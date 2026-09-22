@@ -6,6 +6,7 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-09-22 19:32'
+updated_date: '2026-09-22 20:43'
 labels: []
 milestone: m-1
 dependencies:
@@ -36,3 +37,14 @@ Browser startup is the dominant fixed cost, so the engine must let a caller open
 - [ ] #5 Two renders of the same state and style in one CI run produce byte-identical PNGs, or the deviation is documented with a reason
 - [ ] #6 Renders a state with a 2D cross-section, a 3D mesh panel, and a multi-panel layout in an integration test that runs in the browser CI job
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+DEPENDENCY DECISION (from TASK-1 follow-up): the render backend is Chrome via neuroglancer.webdriver (Selenium), pinned to a Chrome-for-Testing build for reproducibility + local (mac-arm64) parity. selenium must NOT ship only in the dev 'spike' dependency-group (PEP 735 groups are not delivered to PyPI consumers). When this engine imports selenium, declare it as an optional extra instead:
+
+[project.optional-dependencies]
+render = ["selenium>=4.20"]   # pip install ngsnap[render]
+
+Keep the base install browser-free so templating (P15: apply_template/to_url) works with no browser, and import selenium lazily inside the engine, raising an actionable error (P8) if the 'render' extra is missing. The 'spike' group can then be retired or left pinning the same build for local experiments.
+<!-- SECTION:NOTES:END -->

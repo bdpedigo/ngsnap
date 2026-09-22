@@ -39,14 +39,14 @@ jobs:
 
             - name: Install Playwright Chromium (playwright driver only)
               if: matrix.driver == 'playwright'
-              run: uv run playwright install --with-deps chromium
+              run: uv run --group spike playwright install --with-deps chromium
 
             - name: Render (canonical 3D state + 4panel 2D/3D variant)
               working-directory: spike
               run: |
                   set +e
-                  ${{ matrix.wrap }} uv run python render_spike.py --driver ${{ matrix.driver }} --out-dir out
-                  ${{ matrix.wrap }} uv run python render_spike.py --driver ${{ matrix.driver }} --layout 4panel --out-dir out-4panel
+                  ${{ matrix.wrap }} uv run --group spike python render_spike.py --driver ${{ matrix.driver }} --out-dir out
+                  ${{ matrix.wrap }} uv run --group spike python render_spike.py --driver ${{ matrix.driver }} --layout 4panel --out-dir out-4panel
                   exit 0
 
             - name: Job summary

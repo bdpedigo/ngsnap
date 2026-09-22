@@ -3,7 +3,7 @@ id: doc-1
 title: Render backend research
 type: other
 created_date: '2026-09-22 19:30'
-updated_date: '2026-09-22 19:31'
+updated_date: '2026-09-22 20:35'
 ---
 Research notes from 2026-09-22 on how to render a Neuroglancer state to a PNG without a display. Sources: the installed `neuroglancer` 2.41 Python package, the neuroglancer GitHub repository, and its CI configuration.
 
@@ -46,3 +46,31 @@ In every option the browser only opens a URL and stays alive. The screenshot, lo
 - Wall-clock time and peak memory per image for a representative Neuroddities-style state on `ubuntu-latest`.
 - Are renders byte-identical across two runs on the same runner (P6)? Software rasterizers are usually deterministic, GPUs often are not.
 - Which driver has the shortest install recipe for CI?
+
+## Decision (2026-09-22): headless render is viable; default to Chrome for Testing via Selenium
+
+The spike (TASK-1) ran all three candidate drivers on GitHub Actions `ubuntu-latest` (no GPU, no display) against a public MICrONS minnie65 state (S3 EM image + `gs://` segmentation mesh). **All three worked.** The neuroglancer README note about Chrome/Firefox headless WebGL is stale for this runner image.
+
+### Results (1600x1200, `ubuntu-latest`, software WebGL2 via ANGLE/SwiftShader)
+
+| Driver | 3D render 1 | 2D+3D (4panel) render 1 | Render 2 (same session) | Peak RSS (4panel) | Two renders identical | Install |
+| --- | --- | --- | --- | --- | --- | --- |
+| chrome (Selenium) | 1.86 s | 12.56 s | 0.08-0.36 s | 2149 MB | yes | Selenium Manager auto-downloads pinned Chrome for Testing (linux-x64 + mac-arm64); no system Chrome needed |
+| firefox-xvfb (Selenium) | 1.83 s | 10.68 s | 0.08-0.13 s | 2385 MB | yes | Firefox preinstalled; `apt-get install xvfb`; run under `xvfb-run -a`; Linux only |
+| playwright (Chromium) | 2.05 s | 25.87 s | 0.21-0.43 s | 1627 MB | yes | `playwright install --with-deps chromium` (bundles browser + system deps) |
+
+### Findings
+
+- **P3 confirmed.** A real Neuroglancer client renders WebGL to PNG headlessly on a standard CI runner. No GPU required.
+- **P6 confirmed.** Every driver produced two byte-identical renders in the same session. Chrome-Selenium and Playwright-Chromium produced byte-identical PNGs *to each other* for the 3D state (same Chromium engine + SwiftShader -> same pixels), so pinning the browser build gives cross-environment reproducibility.
+- **Session reuse is decisive.** The second render in the same browser session is ~100-300x faster than the first (chunks already loaded). Batch rendering (P11) should reuse one browser session.
+- **Firefox** matches Chrome visually but needs the extra `xvfb` system dependency and process wrapping, and is Linux only.
+- **Playwright** was slowest for the heavy 4panel scene here but has the most reproducible install (it pins its own Chromium build, independent of the runner's system Chrome), which matters for deterministic cache keys (P6/P7). Downside: no prebuilt Chromium for `mac13-arm64`, so local dev on older Apple Silicon macs uses the Chrome/Selenium driver instead.
+
+### Decision
+
+Default backend: **Chrome for Testing driven by Selenium**, with the browser build pinned. Selenium Manager auto-downloads Chrome for Testing at a fixed version for both `linux-x64` and `mac-arm64`, independent of any system Chrome. This delivers the reproducible, pinned engine that P6/P7 need *and* works locally on Apple Silicon — the two properties Playwright could not provide together here (Playwright pins its build but ships no `mac13-arm64` Chromium, and was the slowest driver on the heavy scene). Chrome/Selenium was also the fastest. Firefox-under-xvfb works but needs the extra `xvfb` system dependency and is Linux only, so it stays a fallback. The render engine (TASK-8) keeps the driver as a small swappable seam so the choice can change without touching the rest of the pipeline. Packaging note: selenium ships as an optional `render` extra (see TASK-8), keeping the base install browser-free so templating (P15) needs no browser.
+
+### P4 runtime target
+
+Cold first render of a heavy 2D+3D scene at 1600x1200 was ~10-26 s; a warm second render reusing the session was < 0.5 s. Target for P4: **<= 30 s wall-clock per image cold on `ubuntu-latest`, and < 1 s for subsequent renders that reuse the browser session; default per-image timeout 60 s** (matching `neuroglancer.tool.screenshot`'s refresh default). Peak memory ~2.4 GB, within the `ubuntu-latest` 16 GB budget.

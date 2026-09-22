@@ -44,7 +44,7 @@ A standalone Python package that turns a Neuroglancer state into a consistently 
 | ID | Requirement | Priority |
 | --- | --- | --- |
 | P3 | Renders headlessly with no display and no GPU, so it runs on a standard CI runner (e.g. GitHub Actions `ubuntu-latest`). | Must |
-| P4 | Runtime per image is bounded and predictable enough to run inside a site build without exhausting CI time. Concrete target to be set after the render spike. | Must |
+| P4 | Runtime per image is bounded and predictable enough to run inside a site build without exhausting CI time. Target (set by the TASK-1 spike): <= 30 s wall-clock per image cold on `ubuntu-latest` at 1600x1200, < 1 s for subsequent renders that reuse the browser session, default per-image timeout 60 s. | Must |
 | P6 | Deterministic: the same state and style config produce the same image, so cache keys are stable and re-renders are reproducible. | Must |
 | P7 | Exposes a stable cache key derived from state + style config (or documents how callers should compute one), so callers can skip rendering for unchanged inputs. | Should |
 | P12 | Installable with minimal system dependencies. If a headless browser is required, installation of it should be scripted or documented for CI. | Should |
@@ -81,10 +81,9 @@ ngsnap template <url-or-state.json> --set layout=3d [--style ...]   # prints new
 
 ## 6. Open Questions
 
-- **Render backend:** headless browser driving real Neuroglancer (highest fidelity, heavy dependency) vs. a re-implementation of the rendering (light, but drifts from what users see in the viewer). P14 makes a re-implementation impractical, so the spike should focus on the headless-browser approach and confirm it is viable.
+- **Render backend (RESOLVED 2026-09-22):** the headless-browser approach is viable. The TASK-1 spike rendered a public MICrONS state (2D EM + 3D mesh) to PNG on GitHub Actions `ubuntu-latest` with no GPU and no display, using software WebGL2 (ANGLE/SwiftShader). All three candidate drivers worked — Chrome/Selenium, Firefox-under-xvfb, and Playwright-Chromium — and each produced byte-identical renders across runs (P6). Default backend is **Chrome for Testing via Selenium**, with the browser build pinned (Selenium Manager auto-downloads a fixed Chrome-for-Testing version for both linux-x64 and mac-arm64) so renders are reproducible and local dev on Apple Silicon matches CI; Firefox-under-xvfb is a fallback. The `neuroglancer` README note about broken headless WebGL is stale for this runner. Full results and rationale are in the backlog document "Render backend research" (doc-1).
 - **Style specification:** what format (TOML/YAML/Python object) and how much of the Neuroglancer state does style override vs. respect?
 - **Template shape:** how does a template name the elements to swap? Candidates: a partial state dict merged over the input, JSON-pointer paths, or a small set of named knobs. It must handle both the viewer state (layout, axis lines, background) and the client config state (UI controls, panel borders, scale bar options, image size), because Neuroglancer keeps those in separate objects.
-- **Render backend findings (2026-09-22):** the `neuroglancer` Python package already provides `Viewer.screenshot()`, which waits for all chunks to load before returning a PNG, and `neuroglancer.tool.screenshot`, which adds tiling and UI hiding. The browser only opens the viewer URL. Neuroglancer's README states that Chrome headless fails on Swiftshader bugs and Firefox headless lacks WebGL. Their CI uses Firefox under xvfb on ubuntu-latest. The spike must test whether that note still holds. See the backlog document "Render backend research".
 - **Package name.**
 
 ---

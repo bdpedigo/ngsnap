@@ -7,6 +7,7 @@ URL. The screenshot itself is taken through the Python server (see
 
 from __future__ import annotations
 
+import os
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
@@ -20,6 +21,11 @@ CHROME_SWIFTSHADER_ARGS: tuple[str, ...] = (
     "--enable-unsafe-swiftshader",
     "--ignore-gpu-blocklist",
 )
+
+# Pin the Chrome engine so the same build is used locally and in CI. Selenium
+# Manager downloads Chrome for Testing at this exact version (linux-x64 and
+# mac-arm64 both available), independent of any system Chrome.
+PINNED_CHROME_VERSION: str = os.environ.get("NGSNAP_CHROME_VERSION", "154.0.8037.57")
 
 SUPPORTED_DRIVERS: tuple[str, ...] = ("chrome", "firefox-xvfb", "playwright")
 
@@ -45,23 +51,28 @@ def open_driver(name: str, viewer: Viewer, window_size: tuple[int, int]) -> Driv
 
 
 def _open_chrome(viewer: Viewer, window_size: tuple[int, int]) -> Driver:
-    from neuroglancer.webdriver import Webdriver
+    from selenium import webdriver
 
-    driver = Webdriver(
-        viewer=viewer,
-        browser="chrome",
-        headless=True,
-        docker=True,
-        window_size=window_size,
-        extra_command_line_args=CHROME_SWIFTSHADER_ARGS,
-    )
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless=new")
+    options.browser_version = PINNED_CHROME_VERSION
+    for arg in (
+        *CHROME_SWIFTSHADER_ARGS,
+        "--no-sandbox",
+        "--disable-dev-shm-usage",
+        f"--window-size={window_size[0]},{window_size[1]}",
+    ):
+        options.add_argument(arg)
+    driver = webdriver.Chrome(options=options)
+    driver.get(viewer.get_viewer_url())
     return Driver(
         name="chrome",
-        close=driver.driver.quit,
+        close=driver.quit,
         install_notes=(
-            "Selenium + a Chrome/Chromium binary on PATH. Selenium Manager "
-            "downloads the matching chromedriver automatically. SwiftShader "
-            "flags force software WebGL2 (no GPU)."
+            f"Selenium; Selenium Manager auto-downloads Chrome for Testing "
+            f"{PINNED_CHROME_VERSION} + matching chromedriver (linux-x64 and "
+            "mac-arm64), so no system Chrome is needed and the engine is pinned "
+            "for reproducible renders. SwiftShader flags force software WebGL2."
         ),
         launch_args=CHROME_SWIFTSHADER_ARGS,
     )
