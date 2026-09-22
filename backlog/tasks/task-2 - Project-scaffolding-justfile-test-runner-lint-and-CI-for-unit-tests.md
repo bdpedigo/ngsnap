@@ -1,11 +1,11 @@
 ---
 id: TASK-2
 title: 'Project scaffolding: justfile, test runner, lint, and CI for unit tests'
-status: In Progress
+status: Done
 assignee:
   - '@agent'
 created_date: '2026-09-22 19:31'
-updated_date: '2026-09-22 19:35'
+updated_date: '2026-09-22 20:53'
 labels: []
 milestone: m-1
 dependencies: []
@@ -25,11 +25,11 @@ The repo is an empty uv project with a hello-world entry point. Before feature w
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A justfile has recipes for install, test, lint, format, and typecheck, and each recipe runs cleanly from a fresh clone
-- [ ] #2 pytest is configured as a dev dependency and an empty test suite passes
-- [ ] #3 ruff check and ruff format run with the rules already in pyproject.toml and pass on the existing source
-- [ ] #4 A GitHub Actions workflow runs the test and lint recipes on push and pull request for Python 3.13
-- [ ] #5 The package entry point is renamed so that it no longer prints hello world, or is removed until the CLI task lands
+- [x] #1 A justfile has recipes for install, test, lint, format, and typecheck, and each recipe runs cleanly from a fresh clone
+- [x] #2 pytest is configured as a dev dependency and an empty test suite passes
+- [x] #3 ruff check and ruff format run with the rules already in pyproject.toml and pass on the existing source
+- [x] #4 A GitHub Actions workflow runs the test and lint recipes on push and pull request for Python 3.13
+- [x] #5 The package entry point is renamed so that it no longer prints hello world, or is removed until the CLI task lands
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -42,3 +42,15 @@ The repo is an empty uv project with a hello-world entry point. Before feature w
 5. Add .github/workflows CI running lint + test on push/PR for Python 3.13 using uv.
 6. Run each justfile recipe from clean state to verify they pass.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Verified from clean tree (HEAD a51cfcb): just install/lint/format/typecheck/test all pass. ruff check: All checks passed; ruff format --check: 2 files already formatted; mypy src: no issues; pytest: 1 passed. CI at .github/workflows/ci.yml runs uv sync + ruff check + ruff format --check + pytest on push/PR with Python 3.13. Entry point removed: src/ngsnap/__init__.py empty, no [project.scripts]. Spike scaffolding removed in commit a51cfcb; no dangling spike/selenium/playwright refs outside backlog/.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Added justfile (install/test/lint/format/typecheck), pytest dev dep with passing tests/test_import.py, ruff config, and CI workflow (.github/workflows/ci.yml) running lint+format+test on push/PR for Python 3.13; removed hello-world entry point. Verified all five recipes pass cleanly from a clean tree.
+<!-- SECTION:FINAL_SUMMARY:END -->
