@@ -28,3 +28,7 @@ typecheck:
 
 # Run lint, format, typecheck, and tests
 check: lint format typecheck test
+
+# Render the default-style example image for the README (needs the render extra)
+readme-example:
+    uv run --extra render python scripts/render_readme_example.py

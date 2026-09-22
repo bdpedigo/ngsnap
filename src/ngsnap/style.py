@@ -101,7 +101,7 @@ class Style:
             {
                 "template": self.template,
                 "config": self.config,
-                "respects": list(self.respects),
+                "respects": sorted(self.respects),
             },
             sort_keys=True,
             separators=(",", ":"),
