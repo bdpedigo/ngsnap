@@ -1,0 +1,74 @@
+name: render-spike
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "spike/**"
+      - ".github/workflows/render-spike.yml"
+      - "pyproject.toml"
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - driver: chrome
+            wrap: ""
+          - driver: firefox-xvfb
+            wrap: "xvfb-run -a"
+          - driver: playwright
+            wrap: ""
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: uv sync --group spike
+
+      - name: Install xvfb (firefox driver only)
+        if: matrix.driver == 'firefox-xvfb'
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      - name: Install Playwright Chromium (playwright driver only)
+        if: matrix.driver == 'playwright'
+        run: uv run playwright install --with-deps chromium
+
+      - name: Render (canonical 3D state + 4panel 2D/3D variant)
+        working-directory: spike
+        run: |
+          set +e
+          ${{ matrix.wrap }} uv run python render_spike.py --driver ${{ matrix.driver }} --out-dir out
+          ${{ matrix.wrap }} uv run python render_spike.py --driver ${{ matrix.driver }} --layout 4panel --out-dir out-4panel
+          exit 0
+
+      - name: Job summary
+        if: always()
+        working-directory: spike
+        run: |
+          {
+            echo "## ${{ matrix.driver }}"
+            echo '```json'
+            cat out/${{ matrix.driver }}-metrics.json 2>/dev/null || echo "no canonical metrics"
+            echo '```'
+            echo '```json'
+            cat out-4panel/${{ matrix.driver }}-metrics.json 2>/dev/null || echo "no 4panel metrics"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload renders and metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-${{ matrix.driver }}
+          path: |
+            spike/out/**
+            spike/out-4panel/**
+          if-no-files-found: warn
