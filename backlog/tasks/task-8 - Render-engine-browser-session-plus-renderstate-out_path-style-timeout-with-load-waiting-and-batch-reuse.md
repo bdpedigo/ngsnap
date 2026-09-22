@@ -6,7 +6,7 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-09-22 19:32'
-updated_date: '2026-09-22 20:43'
+updated_date: '2026-09-22 20:48'
 labels: []
 milestone: m-1
 dependencies:
@@ -47,4 +47,10 @@ DEPENDENCY DECISION (from TASK-1 follow-up): the render backend is Chrome via ne
 render = ["selenium>=4.20"]   # pip install ngsnap[render]
 
 Keep the base install browser-free so templating (P15: apply_template/to_url) works with no browser, and import selenium lazily inside the engine, raising an actionable error (P8) if the 'render' extra is missing. The 'spike' group can then be retired or left pinning the same build for local experiments.
+
+REUSABLE SPIKE DETAILS (harness removed after TASK-1; these are the bits worth keeping):
+- Chrome options that gave software WebGL2 headless with no GPU: --headless=new, --use-gl=angle, --use-angle=swiftshader, --enable-unsafe-swiftshader, --ignore-gpu-blocklist, plus --no-sandbox and --disable-dev-shm-usage on CI. Set options.browser_version to a pinned Chrome-for-Testing version (spike used 154.0.8037.57) so Selenium Manager downloads that exact build (linux-x64 + mac-arm64).
+- Flow: neuroglancer.set_server_bind_address('127.0.0.1'); v = neuroglancer.Viewer(); v.set_state(state); open browser at v.get_viewer_url(); then PNG bytes = v.screenshot(size=(w,h)).screenshot.image (note the .screenshot.image accessor \u2014 screenshot() returns an ActionState whose .screenshot is the ScreenshotReply). screenshot() blocks until all visible chunks load.
+- Session reuse: keep one browser/viewer alive across states for batch (P11); 2nd render was ~100-300x faster.
+- Timeout: screenshot() has no timeout arg; run it in a worker thread with a join timeout to fail loudly (P8). Representative public test state: MICrONS minnie65 (S3 EM image + gs:// segmentation mesh), layout '3d'; use '4panel' + showSlices=true to get 2D+3D in one image.
 <!-- SECTION:NOTES:END -->

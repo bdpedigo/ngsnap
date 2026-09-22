@@ -39,14 +39,12 @@ extend-select = [
 ]
 ignore = ["PLC0415", "PLR0913", "PLR0917", "PLR2004", "PLW2901", "TRY003", "BLE001"]
 
+[tool.ruff.format]
+exclude = ["*.md"]
+
 [dependency-groups]
 dev = [
     "mypy>=2.3.1",
     "pytest>=9.1.1",
     "ruff>=0.16.6",
-]
-spike = [
-    "selenium>=4.20",
-    "playwright>=1.44",
-    "psutil>=5.9",
 ]
