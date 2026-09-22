@@ -4,24 +4,24 @@
 # deliberately leaves to the author.
 
 respects = [
-    "layers[].visible",
-    "layers[].segments",
-    "position",
     "crossSectionScale",
+    "layers[].segments",
+    "layers[].visible",
+    "position",
     "projectionScale",
 ]
 
 [template]
-showScaleBar = true
-showAxisLines = false
-showDefaultAnnotations = false
 crossSectionBackgroundColor = "#000000"
 projectionBackgroundColor = "#000000"
+showAxisLines = false
+showDefaultAnnotations = false
+showScaleBar = true
 
 [config]
-showUIControls = false
 showPanelBorders = false
-viewerSize = [1600, 1200]
+showUIControls = false
+viewerSize = [1200, 1600]
 
 [config.scaleBarOptions]
 scaleFactor = 1
