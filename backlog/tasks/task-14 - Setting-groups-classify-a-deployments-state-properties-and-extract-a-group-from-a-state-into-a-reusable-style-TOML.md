@@ -3,10 +3,11 @@ id: TASK-14
 title: >-
   Setting groups: classify a deployment's state properties and extract a group
   from a state into a reusable style TOML
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@ben'
 created_date: '2026-09-22 23:39'
-updated_date: '2026-09-23 18:25'
+updated_date: '2026-09-23 18:56'
 labels: []
 dependencies:
   - TASK-5
@@ -25,11 +26,33 @@ Authors want to reuse the "look" of a curated Neuroglancer link across many new 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A documented, deployment-scoped classification maps Neuroglancer state properties into named groups covering at least appearance, sources, selection, and camera
-- [ ] #2 Given a state (link, JSON, file, or dict) and a group name, the package returns the subset of that state that belongs to that group
-- [ ] #3 The extracted subset can be written to a spec TOML (template/config sections) that `Spec.from_file` loads and applies via the existing templating interface, no new merge mechanism
-- [ ] #4 An appearance extraction excludes non-appearance properties such as sources/layer sources, selected objects, and camera/position
-- [ ] #5 Round trip is idempotent: applying the extracted TOML to the source state reproduces the extracted group of properties
-- [ ] #6 Properties that are not classified into any group are handled in a documented, predictable way (dropped or flagged, not silently mixed in)
-- [ ] #7 Tests cover extracting the appearance group from a representative multi-layer state and the extract-then-apply round trip
+- [x] #1 A documented, deployment-scoped classification maps Neuroglancer state properties into named groups covering at least appearance, sources, selection, and camera
+- [x] #2 Given a state (link, JSON, file, or dict) and a group name, the package returns the subset of that state that belongs to that group
+- [x] #3 The extracted subset can be written to a spec TOML (template/config sections) that `Spec.from_file` loads and applies via the existing templating interface, no new merge mechanism
+- [x] #4 An appearance extraction excludes non-appearance properties such as sources/layer sources, selected objects, and camera/position
+- [x] #5 Round trip is idempotent: applying the extracted TOML to the source state reproduces the extracted group of properties
+- [x] #6 Properties that are not classified into any group are handled in a documented, predictable way (dropped or flagged, not silently mixed in)
+- [x] #7 Tests cover extracting the appearance group from a representative multi-layer state and the extract-then-apply round trip
 <!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. Add src/ngsnap/groups.py: a deployment-scoped SettingGroup classification (appearance, sources, selection, camera) over top-level and per-layer Neuroglancer JSON keys, plus extract_group(state, group) that lifts a group into a template dict (per-layer props keyed by layer name), dropping unclassified properties.
+2. Add Spec.from_state(source, group) that parses the state (TASK-3) and returns a Spec whose template is the extracted group; add Spec.to_toml()/Spec.to_file() serialization using a TOML writer (tomli-w dep) so Spec.from_file can reload it.
+3. Export group names/helpers from ngsnap package __init__.
+4. Document the classification and drop-unclassified behavior in design.md as a RESOLVED decision.
+5. Tests: extract appearance from a representative multi-layer state (excludes sources/segments/camera/position), extract-then-apply round-trip idempotency, unknown-group error, unclassified-dropped.
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Added ngsnap.groups (SettingGroup + GROUPS: appearance/sources/selection/camera classification over top-level and per-layer JSON keys) and extract_group(state, group). Added Spec.from_state(source, group), Spec.to_toml(), Spec.to_file() (tomli-w dep). Exported GROUPS/SettingGroup/extract_group. Documented classification + drop-unclassified behavior in design.md. New tests in tests/test_groups.py cover appearance extraction from a multi-layer state, group partitioning, unclassified-dropped, unknown-group error, round-trip idempotency, and TOML reload/apply. Full suite: 62 passed; ruff + mypy clean.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Introduced deployment-scoped setting groups (ngsnap.groups: appearance/sources/selection/camera) classifying top-level and per-layer Neuroglancer JSON keys, plus extract_group() and Spec.from_state(source, group) that lift a group into a spec template through the existing templating path. Added Spec.to_toml()/to_file() (tomli-w) so an extracted spec reloads via Spec.from_file. Unclassified properties are dropped, not mixed in. Documented in design.md. Verified by tests/test_groups.py (appearance extraction from a multi-layer state, group partitioning, unclassified-dropped, unknown-group error, extract-then-apply idempotency, TOML reload+apply); full suite 62 passed, ruff + mypy clean.
+<!-- SECTION:FINAL_SUMMARY:END -->

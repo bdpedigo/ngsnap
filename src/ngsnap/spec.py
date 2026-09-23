@@ -7,8 +7,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import tomli_w
+
 from ngsnap.errors import SpecError
-from ngsnap.state import StateInput, looks_like_url
+from ngsnap.groups import extract_group
+from ngsnap.state import StateInput, looks_like_url, parse_state
 from ngsnap.template import TemplatedState, apply_template
 
 
@@ -86,6 +89,19 @@ class Spec:
             respects=tuple(respects),
         )
 
+    @classmethod
+    def from_state(cls, source: StateInput, group: str) -> "Spec":
+        """Extract one setting group from a state into a reusable spec.
+
+        Parses ``source`` (link, JSON, file, or dict) and lifts the named group
+        (see :mod:`ngsnap.groups`) into the spec's ``template``. Unclassified
+        properties are dropped. The result applies through the same templating
+        path as any spec, so ``spec.apply(source)`` reproduces the extracted
+        properties. Raises :class:`SpecError` for an unknown group name.
+        """
+        state = parse_state(source).to_json()
+        return cls(template=extract_group(state, group))
+
     @property
     def overrides(self) -> tuple[str, ...]:
         """The state elements this spec sets, derived from the template and config keys."""
@@ -106,6 +122,25 @@ class Spec:
             sort_keys=True,
             separators=(",", ":"),
         )
+
+    def to_toml(self) -> str:
+        """Serialize the spec as TOML with ``template``, ``config``, and ``respects``.
+
+        The output is a spec file :meth:`from_file` reloads. Empty sections are
+        omitted so an extracted single-group spec stays minimal.
+        """
+        document: dict[str, Any] = {}
+        if self.respects:
+            document["respects"] = sorted(self.respects)
+        if self.template:
+            document["template"] = self.template
+        if self.config:
+            document["config"] = self.config
+        return tomli_w.dumps(document)
+
+    def to_file(self, path: str | Path) -> None:
+        """Write the spec as a TOML file that :meth:`from_file` can reload."""
+        Path(path).write_text(self.to_toml(), encoding="utf-8")
 
 
 type SpecInput = Spec | Mapping[str, Any] | str | Path
