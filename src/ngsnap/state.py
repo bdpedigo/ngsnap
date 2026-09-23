@@ -22,6 +22,12 @@ _SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*://")
 _FETCH_TIMEOUT = 30
 
 
+def looks_like_url(text: str) -> bool:
+    """True if a string is a Neuroglancer URL or a bare ``#!...`` state fragment."""
+    stripped = text.strip()
+    return bool(_SCHEME_RE.match(stripped)) or stripped.startswith("#!")
+
+
 def parse_state(source: StateInput) -> ViewerState:
     """Normalize a Neuroglancer state into a ViewerState.
 
@@ -38,7 +44,7 @@ def parse_state(source: StateInput) -> ViewerState:
         text = source.strip()
         if not text:
             raise StateInputError("State input string is empty")
-        if _SCHEME_RE.match(text) or text.startswith("#!"):
+        if looks_like_url(text):
             return _load_from_url(text)
         if text.startswith(("{", "[")):
             return _from_json_string(text)

@@ -14,8 +14,8 @@ import neuroglancer
 from neuroglancer.viewer_config_state import ConfigState
 
 from ngsnap.errors import RenderError, RenderTimeoutError
+from ngsnap.spec import SpecInput, _coerce_spec
 from ngsnap.state import StateInput
-from ngsnap.style import Style
 
 if TYPE_CHECKING:
     from selenium.webdriver import Chrome
@@ -80,10 +80,10 @@ class RenderSession:
         source: StateInput,
         out_path: str | Path,
         *,
-        style: Style | None = None,
+        spec: SpecInput | None = None,
         timeout: float | None = None,
     ) -> Path:
-        """Render ``source`` under ``style`` and write a PNG at the style's configured size.
+        """Render ``source`` under ``spec`` and write a PNG at the spec's configured size.
 
         Waits for Neuroglancer to report all visible chunks loaded, then writes the PNG
         atomically. Raises :class:`RenderTimeoutError` (and writes nothing) if the load
@@ -93,8 +93,7 @@ class RenderSession:
             raise RenderError(
                 "RenderSession is not started; use it as a context manager"
             )
-        style = style or Style.default()
-        templated = style.apply(source)
+        templated = _coerce_spec(spec).apply(source)
         size = _size_from_config(templated.config)
         self._viewer.set_state(templated.viewer_state)
         _apply_config(self._viewer, templated.config)
@@ -144,7 +143,7 @@ def render(
     source: StateInput,
     out_path: str | Path,
     *,
-    style: Style | None = None,
+    spec: SpecInput | None = None,
     timeout: float = DEFAULT_TIMEOUT,
 ) -> Path:
     """Render a single state to a PNG in a one-shot browser session.
@@ -153,7 +152,7 @@ def render(
     avoid paying browser startup per image (P11).
     """
     with RenderSession(timeout=timeout) as session:
-        return session.render(source, out_path, style=style)
+        return session.render(source, out_path, spec=spec)
 
 
 def _start_browser(url: str, chrome_version: str) -> Chrome:

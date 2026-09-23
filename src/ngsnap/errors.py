@@ -10,8 +10,8 @@ class StateTemplateError(NgsnapError):
     """Raised when a template cannot be applied to a Neuroglancer state."""
 
 
-class StyleError(NgsnapError):
-    """Raised when a style cannot be loaded or is malformed."""
+class SpecError(NgsnapError):
+    """Raised when a spec cannot be loaded or is malformed."""
 
 
 class RenderError(NgsnapError):

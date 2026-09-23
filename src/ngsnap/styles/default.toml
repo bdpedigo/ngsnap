@@ -1,6 +1,6 @@
-# ngsnap default house style (P5).
+# ngsnap default spec: the house style (P5).
 # `template` overrides go into the viewer state; `config` overrides are
-# render-time client config-state knobs; `respects` names what the style
+# render-time client config-state knobs; `respects` names what the spec
 # deliberately leaves to the author.
 
 respects = [

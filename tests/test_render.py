@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from ngsnap import RenderError, RenderSession, RenderTimeoutError, Style
+from ngsnap import RenderError, RenderSession, RenderTimeoutError, Spec
 from ngsnap.render import DEFAULT_SIZE, _atomic_write, _size_from_config
 
 STATE_DICT = {
@@ -65,7 +65,7 @@ def test_timeout_raises_and_writes_no_file(
     out = tmp_path / "fig.png"
     try:
         with pytest.raises(RenderTimeoutError):
-            session.render(STATE_DICT, out, style=Style.default())
+            session.render(STATE_DICT, out, spec=Spec.default())
     finally:
         blocking.released.set()
     assert not out.exists()

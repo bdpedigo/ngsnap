@@ -10,7 +10,7 @@ dependencies:
   - TASK-8
 priority: low
 type: chore
-ordinal: 12000
+ordinal: 8000
 ---
 
 ## Description

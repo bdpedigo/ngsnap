@@ -10,7 +10,7 @@ dependencies:
   - TASK-8
 priority: medium
 type: feature
-ordinal: 10000
+ordinal: 6000
 ---
 
 ## Description

@@ -11,7 +11,7 @@ dependencies:
   - TASK-3
 priority: medium
 type: feature
-ordinal: 7000
+ordinal: 5000
 ---
 
 ## Description
