@@ -44,7 +44,7 @@ A standalone Python package that turns a Neuroglancer state into a consistently 
 | ID | Requirement | Priority |
 | --- | --- | --- |
 | P3 | Renders headlessly with no display and no GPU, so it runs on a standard CI runner (e.g. GitHub Actions `ubuntu-latest`). | Must |
-| P4 | Runtime per image is bounded and predictable enough to run inside a site build without exhausting CI time. Target (set by the TASK-1 spike): <= 30 s wall-clock per image cold on `ubuntu-latest` at 1600x1200, < 1 s for subsequent renders that reuse the browser session, default per-image timeout 60 s. | Must |
+| P4 | Runtime per image is bounded and predictable enough to run inside a site build without exhausting CI time. Target (set by the TASK-1 spike): <= 30 s wall-clock per image cold on `ubuntu-latest` at 1600x1200, < 1 s for subsequent renders that reuse the browser session, default per-image timeout 60 s. **Browser CI job budget (TASK-9): <= 15 min on `ubuntu-latest`, covering the one-time pinned Chrome-for-Testing download plus the browser integration tests (5 renders); locally the browser suite runs in ~40 s once the browser is provisioned.** | Must |
 | P6 | Deterministic: the same state and style config produce the same image, so cache keys are stable and re-renders are reproducible. | Must |
 | P7 | Exposes a stable cache key derived from state + style config (or documents how callers should compute one), so callers can skip rendering for unchanged inputs. | Should |
 | P12 | Installable with minimal system dependencies. If a headless browser is required, installation of it should be scripted or documented for CI. | Should |

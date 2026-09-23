@@ -40,5 +40,19 @@ The render engine needs the `render` extra (pinned Chrome for Testing via Seleni
 uv sync --extra render      # or: pip install "ngsnap[render]"
 ```
 
+Selenium Manager downloads the pinned Chrome-for-Testing build on first render, so no
+system Chrome is required. To provision it ahead of time (one step, no `apt`, no `xvfb`):
+
+```
+just install-browser
+# or: uv run python -c "from ngsnap.render import install_browser; install_browser()"
+```
+
+- **CI (`ubuntu-latest`):** `uv sync --extra render` then the provision command above. The
+  runner already has the shared libraries Chrome needs; the render engine runs headless with
+  software WebGL2 (no GPU, no display).
+- **Local macOS (Apple Silicon):** identical — Selenium Manager fetches the `mac-arm64`
+  Chrome-for-Testing build, so local renders match CI.
+
 Define your own style by copying [src/ngsnap/styles/default.toml](src/ngsnap/styles/default.toml)
 and pointing `Style.from_file(...)` at it.

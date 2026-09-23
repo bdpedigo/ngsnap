@@ -6,6 +6,10 @@ install:
 install-render:
     uv sync --extra render
 
+# Download the pinned Chrome for Testing build (Selenium Manager; no system Chrome needed)
+install-browser:
+    uv run --extra render python -c "from ngsnap.render import install_browser; install_browser()"
+
 # Run the test suite (browser integration tests excluded)
 test:
     uv run pytest

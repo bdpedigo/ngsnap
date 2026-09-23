@@ -157,6 +157,12 @@ def render(
 
 
 def _start_browser(url: str, chrome_version: str) -> Chrome:
+    driver = _new_chrome(chrome_version)
+    driver.get(url)
+    return driver
+
+
+def _new_chrome(chrome_version: str) -> Chrome:
     try:
         from selenium.webdriver import Chrome, ChromeOptions
     except ImportError as error:
@@ -166,11 +172,19 @@ def _start_browser(url: str, chrome_version: str) -> Chrome:
     for arg in _CHROME_ARGS:
         options.add_argument(arg)
     try:
-        driver = Chrome(options=options)
+        return Chrome(options=options)
     except Exception as error:
         raise RenderError(f"Could not start Chrome for rendering: {error}") from error
-    driver.get(url)
-    return driver
+
+
+def install_browser(chrome_version: str = CHROME_VERSION) -> None:
+    """Provision the pinned Chrome-for-Testing build via Selenium Manager (P12).
+
+    Building the driver once makes Selenium Manager download the pinned browser and
+    matching driver, so the first real render does not pay for it and CI failures are
+    about rendering, not a missing browser. No system Chrome is required.
+    """
+    _new_chrome(chrome_version).quit()
 
 
 def _size_from_config(config: dict[str, Any]) -> tuple[int, int]:
