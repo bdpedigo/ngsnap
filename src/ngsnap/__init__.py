@@ -8,7 +8,7 @@ from ngsnap.errors import (
 )
 from ngsnap.groups import GROUPS, SettingGroup, extract_group
 from ngsnap.render import RenderSession, render
-from ngsnap.spec import Spec, apply
+from ngsnap.spec import Spec, apply, cache_key
 from ngsnap.state import parse_state, to_url
 from ngsnap.template import REMOVE, TemplatedState, apply_template
 
@@ -27,6 +27,7 @@ __all__ = [
     "TemplatedState",
     "apply",
     "apply_template",
+    "cache_key",
     "extract_group",
     "parse_state",
     "render",

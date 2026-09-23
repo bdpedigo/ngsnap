@@ -1,5 +1,6 @@
 """Spec: a viewer-state template plus render-time config, applied via templating."""
 
+import hashlib
 import json
 import tomllib
 from collections.abc import Mapping
@@ -176,3 +177,34 @@ def apply(source: StateInput, spec: SpecInput | None = None) -> str | dict[str, 
         if text[:1] in "{[":
             return templated.to_json()
     return templated.viewer_state.to_json()
+
+
+_CACHE_KEY_LENGTH = 32
+
+
+def cache_key(source: StateInput, spec: SpecInput | None = None) -> str:
+    """Return a stable short key identifying the render of ``source`` under ``spec`` (P7).
+
+    The key is a pure function of the *applied* viewer state (``spec`` merged over
+    the normalized ``source``) and the spec's canonical JSON, hashed with SHA-256
+    and truncated to a hex string. It is stable across Python processes and
+    platforms and identical for links that differ only in host prefix, key order,
+    or URL-safe quoting, because only the canonical viewer state is hashed.
+
+    Hashing the applied state means state elements the spec overrides do not affect
+    the key (the render is the same), while any other state element or any change
+    to the spec's template, config, or respects does. The key deliberately excludes
+    a render-engine/package version component: it identifies inputs, not the
+    renderer. A browser or neuroglancer upgrade that changes pixels does not change
+    the key, so callers who need that invalidation should namespace their cache by
+    engine version (e.g. prefix the key).
+    """
+    resolved = _coerce_spec(spec)
+    templated = resolved.apply(source)
+    payload = json.dumps(
+        {"state": templated.to_json(), "spec": resolved.to_json()},
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    return digest[:_CACHE_KEY_LENGTH]
