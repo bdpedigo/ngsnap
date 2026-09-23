@@ -21,7 +21,7 @@ showScaleBar = true
 [config]
 showPanelBorders = false
 showUIControls = false
-viewerSize = [1200, 1600]
+viewerSize = [1600, 1200]
 
 [config.scaleBarOptions]
 scaleFactor = 1
