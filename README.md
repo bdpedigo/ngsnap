@@ -1,4 +1,4 @@
-# ngsnap
+# ngsnap [WIP]
 
 Turn a Neuroglancer state (a link or a JSON state) into a consistently styled static PNG,
 headlessly and reproducibly. 
