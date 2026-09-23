@@ -1,8 +1,10 @@
 import json
+from pathlib import Path
 
 from neuroglancer.viewer_state import ViewerState
 
 from ngsnap import REMOVE, apply_template, parse_state, to_url
+from ngsnap.state import DEFAULT_PREFIX
 
 STATE_DICT = {
     "layers": [
@@ -114,6 +116,28 @@ def test_url_round_trips_with_prefix() -> None:
     url = result.to_url(prefix=prefix)
     assert url.startswith(prefix + "#!")
     assert parse_state(url) == parse_state(to_url(result.viewer_state, prefix=prefix))
+
+
+def test_input_url_prefix_is_preserved_and_can_be_overridden() -> None:
+    source_prefix = "https://spelunker.cave-explorer.org/ng/"
+    source = to_url(STATE_DICT, prefix=source_prefix)
+    result = apply_template(source, {"layout": "3d"})
+
+    assert result.to_url().startswith(source_prefix + "#!")
+
+    override = "https://custom.example.org/viewer"
+    assert result.to_url(prefix=override).startswith(override + "#!")
+
+
+def test_inputs_without_url_prefix_use_default(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "state.json"
+    path.write_text(json.dumps(STATE_DICT), encoding="utf-8")
+    sources = [STATE_DICT, json.dumps(STATE_DICT), path, ViewerState(STATE_DICT)]
+
+    for source in sources:
+        assert apply_template(source).to_url().startswith(DEFAULT_PREFIX + "#!")
 
 
 def test_no_template_returns_normalized_state() -> None:

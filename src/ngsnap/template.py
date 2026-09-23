@@ -1,6 +1,7 @@
 """Swap named elements of a Neuroglancer state via a partial-dict template."""
 
 import json
+import urllib.parse
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, Final
@@ -36,6 +37,7 @@ class TemplatedState:
 
     viewer_state: ViewerState
     config: dict[str, Any] = field(default_factory=dict)
+    source_prefix: str | None = None
 
     def to_json(self) -> str:
         """Canonical JSON string of the viewer state, stable across identical inputs."""
@@ -43,9 +45,12 @@ class TemplatedState:
             self.viewer_state.to_json(), sort_keys=True, separators=(",", ":")
         )
 
-    def to_url(self, prefix: str = DEFAULT_PREFIX) -> str:
-        """Neuroglancer URL for the viewer state with a configurable host prefix."""
-        return to_url(self.viewer_state, prefix=prefix)
+    def to_url(self, prefix: str | None = None) -> str:
+        """Encode the state using an explicit, preserved, or default URL prefix."""
+        effective_prefix = (
+            prefix if prefix is not None else self.source_prefix or DEFAULT_PREFIX
+        )
+        return to_url(self.viewer_state, prefix=effective_prefix)
 
 
 def apply_template(
@@ -70,7 +75,21 @@ def apply_template(
         raise StateTemplateError(
             f"Template produced an invalid viewer state: {error}"
         ) from error
-    return TemplatedState(viewer_state=viewer_state, config=_build_config(config))
+    return TemplatedState(
+        viewer_state=viewer_state,
+        config=_build_config(config),
+        source_prefix=_source_prefix(source),
+    )
+
+
+def _source_prefix(source: StateInput) -> str | None:
+    if not isinstance(source, str):
+        return None
+    text = source.strip()
+    parsed = urllib.parse.urlsplit(text)
+    if not parsed.scheme or not parsed.netloc or not parsed.fragment:
+        return None
+    return text.split("#", 1)[0]
 
 
 def _build_config(config: Template | None) -> dict[str, Any]:
