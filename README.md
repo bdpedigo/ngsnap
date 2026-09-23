@@ -6,7 +6,7 @@ headlessly and reproducibly — in CI, a paper, a talk, or a blog build.
 ## The default house style
 
 ngsnap applies its own look to a render rather than trusting whatever the input link happened
-to look like. `Style.default()` is the single opinionated default:
+to look like. `Spec.default()` is the single opinionated default:
 
 - **Chrome off:** hides Neuroglancer's UI controls and panel borders.
 - **Fixed size:** renders at 1600×1200 so figures are uniform.
@@ -16,7 +16,7 @@ to look like. `Style.default()` is the single opinionated default:
   cross-section/projection zoom are left as the state specifies.
 
 The example below is a 4-panel view (2D EM cross-sections plus a 3D mesh) of public FIB-25 data,
-rendered with `Style.default()`:
+rendered with `Spec.default()`:
 
 ![Default-style render of FIB-25 EM data with a 3D mesh](assets/default-style-example.png)
 
@@ -28,98 +28,93 @@ Regenerate it with `just readme-example` (see [scripts/render_readme_example.py]
 > marked `# planned` are not implemented yet; everything else works today. It exists so
 > we can agree on the surface before filling in the gaps.
 
-<!-- TODO style might someday encompass other fixed aspects of state, such as data sources or things like that - i wonder if it is worth making this more general early, or if that is confusing/clunky? it is kind of a stencil/template etc. but not sure what else we could call it -->
-
-A `Style` is the unit of reuse: a named look you can **apply** to make links uniform,
-**check** links against, and **extract** from a link you already like. Rendering is a
-separate step that takes a style.
+A `Spec` is the unit of reuse: a named, frozen set of state properties you can **apply**
+to make links uniform, **check** links against, and **extract** from a link you already
+like. It starts out as appearance (the house style) but can pin any part of a state —
+sources, selection, camera — so nothing here is limited to "looks." Rendering is a
+separate step that takes a spec.
 
 ```python
-from ngsnap import Style, render, render_all, cache_key
-
 # the link you are starting with
 link = "https://neuroglancer-demo.appspot.com/#!..."
 ```
 
-### Styles
+### Specs
 
 ```python
-style = Style.default()                    # the one opinionated house style
-style = Style.from_file("my_style.toml")
+from ngsnap import Spec
 
-# Generate a new style FROM a link by lifting a named setting group out of it.
-style = Style.from_state(link, groups=["cosmetic"])   # planned
-style.to_file("my_style.toml")                    # planned — round-trips with from_file
+spec = Spec.default()                      # opinionated house style
+spec = Spec.from_file("my_spec.toml")
+
+# Generate a new spec FROM a link by lifting a named setting group out of it.
+spec = Spec.from_state(link, groups=["appearance"])   # planned
+spec.to_file("my_spec.toml")                        # planned — round-trips with from_file
 ```
 
-### Apply a style — make one or more links uniform
+### Apply a spec — restyle a link or state
+
+`apply` takes a source and a spec — a `Spec`, or a plain dict / TOML path as an anonymous
+spec — and returns the restyled result in the **same shape as the input**: a link in
+gives a link out, a JSON state in gives a JSON state out. No new class to reason about.
 
 ```python
-templated = style.apply(link)              # -> TemplatedState
-templated.to_url()                         # restyled Neuroglancer link (host prefix preserved)
-templated.to_json()                        # canonical viewer-state JSON
+from ngsnap import apply, REMOVE
 
-for templated in style.apply_all(links):   # planned — one or more links
-    templated.to_url()
+apply(link, spec)                          # link in -> restyled link out (host prefix preserved)
+apply(state, spec)                         # JSON state in -> restyled JSON state out
+
+apply(link, {"showAxisLines": False, "layers": {"seg": {"visible": True}}})  # anonymous spec
+apply(link, {"crossSectionScale": REMOVE})   # delete a key
 ```
 
 `apply` never touches a browser, so it is cheap and usable purely to produce restyled
-links or JSON. Under the hood it goes through the general templating interface:
+links or states. The state is inlined in the URL fragment — ngsnap never uploads a new
+state or mints a short link.
 
-<!-- TODO why do we need a different API here? could the same apply just accept either a Style object or a dict or a path to a TOML? -->
+### Check a spec — does a link already match?
+
+`check` is the read-only counterpart of `apply`: instead of restyling, it reports whether
+a source already matches the spec. It returns a report that is itself truthy, so it reads
+like a bool but still carries the details of what diverged.
+
 ```python
-from ngsnap import apply_template, REMOVE
+from ngsnap import check
 
-# Ad-hoc, one-off overrides without authoring a Style.
-apply_template(link, {"showAxisLines": False, "layers": {"seg": {"visible": True}}})
-apply_template(link, {"crossSectionScale": REMOVE})   # delete a key
-```
-
-### Check a style — are these links already uniform?
-
-<!-- TODO same comments as the above about whether to just have one functional interface -->
-```python
-report = style.check(link)                 # planned -> StyleReport
-report.ok                                  # bool: does the state already match the style?
+report = check(link, spec)                 # planned -> SpecReport
+if report:                                 # truthy when the state already matches
+    ...
+report.ok                                  # the same bool, explicitly
 report.mismatches                          # {property: (expected, actual)} for what diverges
-
-reports = style.check_all(links)           # planned — one report per link
-all(r.ok for r in reports)                 # is the whole batch uniform?
 ```
 
-Checking is strict: a property matches only when it is explicitly present and equal.
-It is the read-only counterpart of `apply` — applying a style and then checking against
-it always passes.
+Checking is strict: a property matches only when it is explicitly present and equal, so
+applying a spec and then checking against it always passes.
 
-### Render one or more links with a style
+### Render a link with a spec
 
 ```python
-render(link, "fig.png", style=style)       # one-shot browser session
+from ngsnap import render
 
-render_all(                                # planned — one browser session for the batch
-    {link_a: "a.png", link_b: "b.png"},
-    style=style,
-)
+render(link, "fig.png", spec=spec)         # link -> PNG, applying the spec
 ```
 
-For finer control over a long batch, drive the session directly:
+### Authenticated sources
 
-```python
-from ngsnap import RenderSession
-
-with RenderSession() as session:           # browser starts once (P11)
-    session.render(link_a, "a.png", style=style)
-    session.render(link_b, "b.png", style=style)
-```
+Private states and data sources resolve with credentials read from the environment —
+never baked in or written to disk (planned; needs the optional `cave` extra for
+`caveclient`, `uv sync --extra cave`).
 
 ### Cache keys
 
 ```python
-key = cache_key(link, style)               # planned — stable string over state + style (P7)
+from ngsnap import cache_key
+
+key = cache_key(link, spec)                # planned — stable string over state + spec (P7)
 ```
 
 Callers own the cache; `cache_key` just gives a deterministic key so unchanged
-inputs can skip rendering.
+inputs can skip rendering an image that should not have changed.
 
 ## CLI
 
@@ -127,30 +122,25 @@ inputs can skip rendering.
 > yet; this is the intended command surface.
 
 ```
-# Render one or more links with a style.
-ngsnap render <url-or-file>... -o fig.png [--style s.toml] [--timeout 60]
+# Render a link to a PNG with a spec.
+ngsnap render <url-or-file> -o fig.png [--spec s.toml] [--timeout 60]
 
-# Apply a style and emit the restyled states (uniform links/JSON), no browser.
-ngsnap apply  <url-or-file>... [--style s.toml] [--url | --json]
+# Apply a spec file or inline --set overrides; print the restyled link or JSON.
+ngsnap apply <url-or-file> [--spec s.toml] [--set key=value]... [--url | --json]
 
-# Check whether links already conform to a style; exit non-zero if any diverge.
-ngsnap check  <url-or-file>... [--style s.toml] [--strict]
+# Check whether a link conforms to a spec; exit non-zero if it diverges.
+ngsnap check <url-or-file> [--spec s.toml] [--strict]
 
-# Generate a new style from a link by extracting a named setting group.
-ngsnap extract <url-or-file> [--group cosmetic] -o style.toml
+# Extract a named setting group from a link into a spec; prints TOML.
+ngsnap extract <url-or-file> [--group appearance]
 
-# Ad-hoc templating without a Style; print the new state as a URL or JSON.
-ngsnap template <url-or-file> --set showAxisLines=false [--url | --json]
-
-# Stable cache key over state + style.
-ngsnap key <url-or-file> [--style s.toml]
-
-# Render many links from a manifest through one browser session.
-ngsnap batch <manifest.json> [--style s.toml]
+# Stable cache key over state + spec.
+ngsnap cache-key <url-or-file> [--spec s.toml]
 ```
 
-Every command accepts a link, a JSON file, or `-` for JSON on stdin, so the tool
-composes in shell pipelines and site builds.
+Every command reads a link, a JSON file, or `-` for JSON on stdin and writes to stdout —
+except `render`, which writes a PNG to `-o` — so the tool composes in shell pipelines and
+site builds.
 
 ## Installation
 
@@ -174,5 +164,5 @@ just install-browser
 - **Local macOS (Apple Silicon):** identical — Selenium Manager fetches the `mac-arm64`
   Chrome-for-Testing build, so local renders match CI.
 
-Define your own style by copying [src/ngsnap/styles/default.toml](src/ngsnap/styles/default.toml)
-and pointing `Style.from_file(...)` at it.
+Define your own spec by copying [src/ngsnap/styles/default.toml](src/ngsnap/styles/default.toml)
+and pointing `Spec.from_file(...)` at it.
