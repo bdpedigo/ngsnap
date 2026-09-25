@@ -39,6 +39,18 @@ class Spec:
                 "showDefaultAnnotations": False,
                 "crossSectionBackgroundColor": "#000000",
                 "projectionBackgroundColor": "#000000",
+                # Hidden panels still reserve width in the viewer, leaving a black bar.
+                **{
+                    panel: {"visible": False}
+                    for panel in (
+                        "selectedLayer",
+                        "settingsPanel",
+                        "selection",
+                        "layerListPanel",
+                        "statistics",
+                        "helpPanel",
+                    )
+                },
             },
             config={
                 "showUIControls": False,

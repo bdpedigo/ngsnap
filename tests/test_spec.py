@@ -36,6 +36,19 @@ def test_default_hides_ui_and_sets_size_background_scalebar() -> None:
     assert viewer["projectionBackgroundColor"] == "#000000"
 
 
+def test_default_closes_side_panels() -> None:
+    state = {
+        **STATE_DICT,
+        "selectedLayer": {"layer": "seg", "visible": True, "size": 259},
+        "selection": {"size": 259},
+        "settingsPanel": {"visible": True},
+    }
+    viewer = Spec.default().apply(state).viewer_state.to_json()
+    assert viewer["selectedLayer"]["visible"] is False
+    assert viewer["selection"]["visible"] is False
+    assert viewer["settingsPanel"]["visible"] is False
+
+
 def test_apply_returns_templated_state() -> None:
     result = Spec.default().apply(STATE_DICT)
     assert isinstance(result, TemplatedState)

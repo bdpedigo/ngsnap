@@ -18,6 +18,25 @@ showAxisLines = false
 showDefaultAnnotations = false
 showScaleBar = true
 
+# Hidden panels still reserve width in the viewer, leaving a black bar.
+[template.helpPanel]
+visible = false
+
+[template.layerListPanel]
+visible = false
+
+[template.selectedLayer]
+visible = false
+
+[template.selection]
+visible = false
+
+[template.settingsPanel]
+visible = false
+
+[template.statistics]
+visible = false
+
 [config]
 showPanelBorders = false
 showUIControls = false

@@ -119,7 +119,9 @@ class RenderSession:
             self._recover()
             raise RenderTimeoutError(
                 f"Render did not finish loading within {timeout:g}s; the data source may be "
-                "slow or unreachable. No image was written."
+                "slow or unreachable. Make sure that all segments you have selected are "
+                "present in the mesh source; missing objects can cause the render to time "
+                "out. No image was written."
             )
         if "error" in result:
             raise RenderError(
