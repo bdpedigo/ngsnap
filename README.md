@@ -1,7 +1,9 @@
-# ngsnap
+# ngsnap [WIP]
 
 Turn a Neuroglancer state (a link or a JSON state) into a consistently styled static PNG,
-headlessly and reproducibly — in CI, a paper, a talk, or a blog build.
+headlessly and reproducibly. 
+
+Use it in CI, a paper, a talk, or a blog build.
 
 ## The default house style
 
